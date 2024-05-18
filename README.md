@@ -4,9 +4,10 @@ BCQA is a benchmark for a wide range of complex Qa tasks. It also aims to provid
 
 
 # Setup
-1) Clone the repo <br />
-2) Create a conda environment conda create -n bcqa  <br />
-3) pip install -e .<br />
+1) Create a conda environment `conda create -n bcqa python=3.10`  <br />
+2) `pip install -e .` <br />
+3) To be able to use GPU: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118` <br />
+4) The data paths are absolute for my pc so you need to change it to fit yours.
 
 # Running Evaluation
 The evaluation scripts for retreival and LLMs are in the evaluation folder 
