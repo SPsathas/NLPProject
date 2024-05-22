@@ -44,7 +44,7 @@ class HfRetriever(BaseRetriver):
                        batch_size: int = 16,
                          **kwargs) -> Union[List[Tensor], np.ndarray, Tensor]:
         with torch.no_grad():
-            tokenized_questions = self.question_tokenizer([query.text() for query in queries], padding=True, truncation=True, return_tensors='pt').to("cuda")
+            tokenized_questions = self.question_tokenizer([query.text() for query in queries], padding=True, truncation=True, return_tensors='pt').to('cuda')
             token_emb =  self.question_encoder(**tokenized_questions)
         print("token_emb",token_emb[0].shape)
         sentence_emb = self.mean_pooling(token_emb[0],tokenized_questions["attention_mask"])
@@ -70,8 +70,8 @@ class HfRetriever(BaseRetriver):
         with torch.no_grad():
             while index < len(contexts):
                 samples = contexts[index:index+self.batch_size]
-                tokenized_contexts = self.context_tokenizer(samples, padding=True, truncation=True, return_tensors='pt').to("cuda")
-                token_emb =  self.context_encoder(**tokenized_contexts)
+                tokenized_contexts = self.context_tokenizer(samples, padding=True, truncation=True, return_tensors='pt').to('cuda')
+                token_emb = self.context_encoder(**tokenized_contexts)
                 sentence_emb = self.mean_pooling(token_emb[0],tokenized_contexts["attention_mask"])
                 context_embeddings.append(sentence_emb)
                 index += self.batch_size
@@ -82,8 +82,8 @@ class HfRetriever(BaseRetriver):
         return context_embeddings
 
     def load_index_if_available(self)->Tuple[Any,bool]:
-        if os.path.exists("indices/corpus/index"):
-            corpus_embeddings = joblib.load("indices/corpus/index")
+        if os.path.exists("C:/Users/steff/Documents/CS4360/NLPProject/indices/corpus/index"):
+            corpus_embeddings = joblib.load("C:/Users/steff/Documents/CS4360/NLPProject/indices/corpus/index")
             index_present=True
         else:
             index_present = False
@@ -166,12 +166,12 @@ class HfRetriever(BaseRetriver):
         embeddings, index_present = self.load_index_if_available()
 
         #TODO:Comment below for index usage
-        index_present = False
+        # index_present = False
         if index_present:
             corpus_embeddings = embeddings
         else:
             corpus_embeddings = self.encode_corpus(corpus)
-            joblib.dump(corpus_embeddings,"indices/corpus/index")
+            joblib.dump(corpus_embeddings,"C:/Users/steff/Documents/CS4360/NLPProject/indices/corpus/index")
 
         # Compute similarites using either cosine-similarity or dot product
         cos_scores = score_function.evaluate(query_embeddings,corpus_embeddings)

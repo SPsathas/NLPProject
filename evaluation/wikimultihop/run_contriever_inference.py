@@ -26,7 +26,7 @@ if __name__ == "__main__":
     #     corpus = json.load(f)
 
     similarity_measure = CosScore()
-    response = tasb_search.retrieve(corpus, queries[1], 100, similarity_measure)
+    response = tasb_search.retrieve(corpus, queries[:2], 100, similarity_measure)
     print("indices", len(response))
     metrics = RetrievalMetrics(k_values=[1, 3, 5])
     print(metrics.evaluate_retrieval(qrels=qrels, results=response))
