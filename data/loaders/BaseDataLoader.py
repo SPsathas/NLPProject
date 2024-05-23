@@ -101,9 +101,11 @@ class GenericDataLoader(DataLoader):
         return op["input_ids"], op["attention_mask"]
     
     def tokenize_evidences(self):
-        op = self.tokenizer.tokenize([data.evidences.text() for data in self.raw_data], padding=True, truncation=True,
-                                     return_tensors="pt")
-        return op['input_ids'], op['attention_mask']
+        tokenized  = [self.tokenizer.tokenize(data.evidences.text(), padding=True, truncation=True,
+                                     return_tensors="pt") for data in self.raw_data]
+        input_ids = [t['input_ids'] for t in tokenized]
+        attention_mask = [t['attention_mask'] for t in tokenized]
+        return input_ids,attention_mask
         
 
     def tokenize_answers(self):

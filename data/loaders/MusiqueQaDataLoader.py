@@ -23,15 +23,15 @@ class MusiqueQADataLoader(GenericDataLoader):
         dataset = self.load_json(split)
         print(len(dataset))
         for  query_index, data in enumerate(tqdm.tqdm(dataset)):
-            if len(data["paragraphs"]) == 0:
-                data["paragraphs"] = ['some random title', ['some random stuff']]
-            for evidence_set in data["paragraphs"]:
-                title = evidence_set["title"]
+            if len(data["context"]) == 0:
+                data["context"] = ['some random title', ['some random stuff']]
+            for evidence_set in data["context"]:
+                title = evidence_set[0]
                 #for evidence in evidence_set[1]:
-                evidence = evidence_set["paragraph_text"]
+                evidence = evidence_set[1]
                 #print(list(self.titles).index(title.split(" - ")[0]))
                 self.raw_data.append(
-                    Sample(query_index, Question(data["question"],idx=data["id"]), Answer(data["answer"]),
+                    Sample(query_index, Question(data["question"],idx=data["_id"]), Answer(data["answer"]),
                             Evidence(text=evidence, 
                                     idx=list(self.titles).index(title.split(" - ")[0]),title=title)
                 ))
