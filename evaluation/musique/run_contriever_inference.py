@@ -15,9 +15,9 @@ if __name__ == "__main__":
     config_instance = DenseHyperParams(query_encoder_path="facebook/contriever",
                                      document_encoder_path="facebook/contriever"
                                      ,batch_size=16)
-   # config = config_instance.get_all_params()
-    corpus_path = "C:/Users/steff/Documents/CS4360/NLPProject/wiki_musique_corpus.json"
-    loader = RetrieverDataset("musiqueqa","wiki-musiqueqa-corpus","C:/Users/steff/Documents/CS4360/NLPProject/evaluation/config.ini",Split.DEV)
+    # config = config_instance.get_all_params()
+    # corpus_path = "C:/Users/steff/Documents/CS4360/NLPProject/wiki_musique_corpus.json"
+    loader = RetrieverDataset("musiqueqa","wiki-musiqueqa-corpus","C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/NLPProject/evaluation/config.ini", Split.TEST)
     queries, qrels, corpus = loader.qrels()
     print("queries",len(queries),len(qrels),len(corpus),queries[0])
     tasb_search = Contriever(config_instance)
