@@ -70,7 +70,7 @@ class HfRetriever(BaseRetriver):
         with torch.no_grad():
             while index < len(contexts):
                 samples = contexts[index:index+self.batch_size]
-                tokenized_contexts = self.context_tokenizer(samples, padding=True, truncation=True, return_tensors='pt').to('cuda')
+                tokenized_contexts = self.context_tokenizer(samples, padding=True, truncation=True, return_tensors='pt')#.to('cuda')
                 token_emb = self.context_encoder(**tokenized_contexts)
                 sentence_emb = self.mean_pooling(token_emb[0],tokenized_contexts["attention_mask"])
                 context_embeddings.append(sentence_emb)
@@ -82,8 +82,8 @@ class HfRetriever(BaseRetriver):
         return context_embeddings
 
     def load_index_if_available(self)->Tuple[Any,bool]:
-        if os.path.exists("C:/Users/steff/Documents/CS4360/NLPProject/indices/corpus/index"):
-            corpus_embeddings = joblib.load("C:/Users/steff/Documents/CS4360/NLPProject/indices/corpus/index")
+        if os.path.exists("C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/indices/corpus/index"):
+            corpus_embeddings = joblib.load("C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/indices/corpus/index")
             index_present=True
         else:
             index_present = False
