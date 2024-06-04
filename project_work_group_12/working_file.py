@@ -27,7 +27,7 @@ def get_relevant_documents(config_path: str, query: str, top_k: int):
     queries, qrels, corpus = loader.qrels()
     # print("queries", len(queries), len(qrels), len(corpus))
     print("First question:", queries[0].text())
-    print("First question:", queries[1].text())
+    # print("First question:", queries[1].text())
     tasb_search = Contriever(CONFIG_INSTANCE)
 
     similarity_measure = CosScore()
@@ -36,9 +36,11 @@ def get_relevant_documents(config_path: str, query: str, top_k: int):
     metrics = RetrievalMetrics(k_values=[1, 3, 5])
     print(metrics.evaluate_retrieval(qrels=qrels, results=response))
 
-    return response
+    processed_response = process_response(response)
+    final_response = get_textual_documents(processed_response, corpus)
+    return response, final_response
 
-def f(response):
+def process_response(response):
     processed_response = {}
     for _, k in enumerate(response.keys()):
         docs = response[k]
@@ -48,30 +50,27 @@ def f(response):
 
     return processed_response
 
-def g(processed_response, corpus):
+def get_textual_documents(processed_response, corpus):
     all_docs = []
     for _, query_id in enumerate(processed_response.keys()):
         all_docs.append(processed_response[query_id]) # so to iterate once in the corpus
     all_docs = [d for l in all_docs for d in l] # flatten list
     doc_text = {}
 
-    for _, doc_id in enumerate(corpus):
-        if doc_id in all_docs:
-            doc_text[doc_id] = corpus[doc_id]['text']
+    print(corpus)
+    for doc in corpus:
+        if doc._idx in all_docs:
+            doc_text[doc._idx] = doc._text
 
     for _, query_id in enumerate(processed_response.keys()):
         texts = []
-        for _, doc_id in enumerate(processed_response[query_id]):
+        for doc_id in processed_response[query_id]:
             texts.append(doc_text[doc_id])
         processed_response[query_id] = texts
 
     return processed_response
 
 if __name__ == "__main__":
-    response = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
+    response, context = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
                            "Who is the mother of the director of film Polish-Russian War (Film)?",
                            3)
-    print("response type:", type(response))
-    print("response:", response)
-    with open('response.json', 'w', encoding='utf-8') as f:
-        json.dump(response, f, ensure_ascii=False, indent=4)
