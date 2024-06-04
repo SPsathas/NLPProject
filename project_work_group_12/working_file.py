@@ -24,19 +24,48 @@ def get_relevant_documents(config_path: str, query: str, top_k: int):
     loader = RetrieverDataset("musiqueqa", "wiki-musiqueqa-corpus",
                               config_path,
                               Split.DEV)
-    queries, _, corpus = loader.qrels()
+    queries, qrels, corpus = loader.qrels()
     # print("queries", len(queries), len(qrels), len(corpus))
-    print("First question:", query[0])
-    print("First question:", query[1])
+    print("First question:", queries[0].text())
+    print("First question:", queries[1].text())
     tasb_search = Contriever(CONFIG_INSTANCE)
 
     similarity_measure = CosScore()
     response = tasb_search.retrieve(corpus, queries[:1], top_k, similarity_measure) # automatically looks for the already encoded corpus
     print("indices", len(response))
-    # metrics = RetrievalMetrics(k_values=[1, 3, 5])
-    # print(metrics.evaluate_retrieval(qrels=qrels, results=response))
+    metrics = RetrievalMetrics(k_values=[1, 3, 5])
+    print(metrics.evaluate_retrieval(qrels=qrels, results=response))
 
     return response
+
+def f(response):
+    processed_response = {}
+    for _, k in enumerate(response.keys()):
+        docs = response[k]
+        processed_response[k] = []
+        for _, doc_id in enumerate(docs.keys()):
+            processed_response[k].append(doc_id)
+
+    return processed_response
+
+def g(processed_response, corpus):
+    all_docs = []
+    for _, query_id in enumerate(processed_response.keys()):
+        all_docs.append(processed_response[query_id]) # so to iterate once in the corpus
+    all_docs = [d for l in all_docs for d in l] # flatten list
+    doc_text = {}
+
+    for _, doc_id in enumerate(corpus):
+        if doc_id in all_docs:
+            doc_text[doc_id] = corpus[doc_id]['text']
+
+    for _, query_id in enumerate(processed_response.keys()):
+        texts = []
+        for _, doc_id in enumerate(processed_response[query_id]):
+            texts.append(doc_text[doc_id])
+        processed_response[query_id] = texts
+
+    return processed_response
 
 if __name__ == "__main__":
     response = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
