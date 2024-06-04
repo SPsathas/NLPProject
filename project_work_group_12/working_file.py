@@ -38,6 +38,6 @@ def get_relevant_documents(config_path: str, query: str, top_k: int,
     return response
 
 if __name__ == "__main__":
-    response = get_relevant_documents("C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/NLPProject/evaluation/config.ini",
+    response = get_relevant_documents("./config.ini",
                            "Who is the mother of the director of film Polish-Russian War (Film)?",
                            3)
