@@ -38,6 +38,6 @@ def get_relevant_documents(config_path: str, query: str, top_k: int,
     return response
 
 if __name__ == "__main__":
-    response = get_relevant_documents("./config.ini",
+    response = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
                            "Who is the mother of the director of film Polish-Russian War (Film)?",
                            3)
