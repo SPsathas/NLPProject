@@ -73,5 +73,6 @@ def get_textual_documents(processed_response, corpus):
 if __name__ == "__main__":
     top_k = 3
     response = get_relevant_documents("./project_work_group_12/config.ini", top_k)
-    print(response)
+    with open('results.json', 'w', encoding='utf-8') as f:
+      json.dump(response, f, ensure_ascii=False, indent=4)
 

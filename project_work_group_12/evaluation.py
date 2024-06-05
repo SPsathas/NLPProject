@@ -1,6 +1,7 @@
 from working_file import get_relevant_documents
 from evaluate import load
 from gfw import DevDataset, GPTQA
+import json
 
 def exact_match(predictions: list[str], references: list[str]) -> list[float]:
     """
@@ -11,7 +12,7 @@ def exact_match(predictions: list[str], references: list[str]) -> list[float]:
                                          ignore_case=True,
                                          ignore_punctuation=True)
 
-    return sum(results)/len(results)
+    return results['exact_match']
 
 def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =None):
     ground_truth = []
@@ -34,7 +35,9 @@ def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =No
 if __name__ == "__main__":
     dev = DevDataset("./project_work_group_12/data/dev.json")
     top_k = 3
-    retrieved_documents = get_relevant_documents("./project_work_group_12/config.ini", top_k)
+    f = open("results.json")
+    retrieved_documents = json.load(f)
+    print(retrieved_documents)
 
     print("Result with oracle contexts:", evaluate(dev, 'oracle'))
-    print("Result with retrieved contexts:", evaluate(dev, 'retrieved'), retrieved_documents)
+    print("Result with retrieved contexts:", evaluate(dev, 'retrieved', retrieved_documents))
