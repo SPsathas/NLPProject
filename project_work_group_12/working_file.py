@@ -27,7 +27,6 @@ def get_relevant_documents(config_path: str, query: str, top_k: int):
     queries, qrels, corpus = loader.qrels()
     # print("queries", len(queries), len(qrels), len(corpus))
     print("First question:", queries[0].text())
-    # print("First question:", queries[1].text())
     tasb_search = Contriever(CONFIG_INSTANCE)
 
     similarity_measure = CosScore()
@@ -65,6 +64,7 @@ def get_textual_documents(processed_response, corpus):
     for _, query_id in enumerate(processed_response.keys()):
         texts = []
         for doc_id in processed_response[query_id]:
+          if doc_text[doc_id] not in texts: # trying to avoid duplicates
             texts.append(doc_text[doc_id])
         processed_response[query_id] = texts
 
@@ -74,3 +74,5 @@ if __name__ == "__main__":
     response, context = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
                            "Who is the mother of the director of film Polish-Russian War (Film)?",
                            3)
+    with open('result.json', 'w', encoding='utf-8') as f:
+      json.dump(context, f, ensure_ascii=False, indent=4)
