@@ -25,19 +25,18 @@ def get_relevant_documents(config_path: str, query: str, top_k: int):
                               config_path,
                               Split.DEV)
     queries, qrels, corpus = loader.qrels()
-    # print("queries", len(queries), len(qrels), len(corpus))
     print("First question:", queries[0].text())
     tasb_search = Contriever(CONFIG_INSTANCE)
 
     similarity_measure = CosScore()
-    response = tasb_search.retrieve(corpus, queries[:1], top_k, similarity_measure) # automatically looks for the already encoded corpus
+    response = tasb_search.retrieve(corpus, queries, top_k, similarity_measure) # automatically looks for the already encoded corpus
     print("indices", len(response))
-    metrics = RetrievalMetrics(k_values=[1, 3, 5])
-    print(metrics.evaluate_retrieval(qrels=qrels, results=response))
+    # metrics = RetrievalMetrics(k_values=[1, 3, 5])
+    # print(metrics.evaluate_retrieval(qrels=qrels, results=response))
 
     processed_response = process_response(response)
-    final_response = get_textual_documents(processed_response, corpus)
-    return response, final_response
+    # final_response = get_textual_documents(processed_response, corpus)
+    return processed_response#, final_response
 
 def process_response(response):
     processed_response = {}
@@ -50,6 +49,7 @@ def process_response(response):
     return processed_response
 
 def get_textual_documents(processed_response, corpus):
+  # no more in use since modification in HfRetriever
     all_docs = []
     for _, query_id in enumerate(processed_response.keys()):
         all_docs.append(processed_response[query_id]) # so to iterate once in the corpus
@@ -71,8 +71,9 @@ def get_textual_documents(processed_response, corpus):
     return processed_response
 
 if __name__ == "__main__":
-    response, context = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
+    top_k = 3
+    response = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
                            "Who is the mother of the director of film Polish-Russian War (Film)?",
-                           3)
-    with open('result.json', 'w', encoding='utf-8') as f:
-      json.dump(context, f, ensure_ascii=False, indent=4)
+                           top_k)
+    print(response)
+

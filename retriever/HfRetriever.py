@@ -188,5 +188,5 @@ class HfRetriever(BaseRetriver):
         for idx, q in enumerate(queries):
             response[q.id()] = {}
             for index, id in enumerate(cos_scores_top_k_idx[idx]):
-                response[q.id()][corpus[id].id()] = float(cos_scores_top_k_values[idx][index])
+                response[q.id()][corpus[id].text()] = float(cos_scores_top_k_values[idx][index])
         return response
