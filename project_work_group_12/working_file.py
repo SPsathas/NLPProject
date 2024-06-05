@@ -15,7 +15,7 @@ CONFIG_INSTANCE = DenseHyperParams(query_encoder_path="facebook/contriever",
                                      document_encoder_path="facebook/contriever",
                                      batch_size=16)
 
-def get_relevant_documents(config_path: str, query: str, top_k: int):
+def get_relevant_documents(config_path: str, top_k: int):
     """
     Get relevant documents for a given query.
     Works on the musique dataset.
@@ -72,8 +72,6 @@ def get_textual_documents(processed_response, corpus):
 
 if __name__ == "__main__":
     top_k = 3
-    response = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
-                           "Who is the mother of the director of film Polish-Russian War (Film)?",
-                           top_k)
+    response = get_relevant_documents("./project_work_group_12/config.ini", top_k)
     print(response)
 
