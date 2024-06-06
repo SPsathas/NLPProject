@@ -15,20 +15,23 @@ CONFIG_INSTANCE = DenseHyperParams(query_encoder_path="facebook/contriever",
 
 def get_random_pairs(response, num_pairs):
     # Extract the dictionary from the response
-    inner_dict = next(iter(response.values()))
+    for _, q_id in enumerate(response.keys()):
+      inner_dict = response[q_id]
 
-    # Get a list of keys from the dictionary
-    keys = list(inner_dict.keys())
+      # Get a list of keys from the dictionary
+      keys = list(inner_dict.keys())
 
-    # Select random keys
-    random_keys = random.sample(keys, num_pairs)
+      # Select random keys
+      random_keys = random.sample(keys, num_pairs)
 
-    # Create a new dictionary with the selected key-value pairs
-    random_pairs = {key: inner_dict[key] for key in random_keys}
+      # Create a new dictionary with the selected key-value pairs
+      random_pairs = {key: inner_dict[key] for key in random_keys}
 
-    return random_pairs
+      response[q_id] = random_pairs
 
-def get_relevant_documents(config_path: str, top_k: int, inverted: bool = False, n_pairs: int = 2):
+    return response
+
+def get_relevant_documents(config_path: str, top_k: int, inverted: bool = False, n_pairs: int = None):
     """
     Get relevant documents for a given query.
     Works on the musique dataset.
@@ -48,7 +51,7 @@ def get_relevant_documents(config_path: str, top_k: int, inverted: bool = False,
     # metrics = RetrievalMetrics(k_values=[1, 3, 5])
     # print(metrics.evaluate_retrieval(qrels=qrels, results=response))
 
-    if inverted:
+    if inverted and n_pairs is not None:
         response = get_random_pairs(response, n_pairs)
 
     processed_response = process_response(response)
@@ -88,8 +91,9 @@ def get_textual_documents(processed_response, corpus):
     return processed_response
 
 if __name__ == "__main__":
-    top_k = 10
-    response = get_relevant_documents("./project_work_group_12/config.ini", top_k)
-    with open(f'results_{top_k}.json', 'w', encoding='utf-8') as f:
+    top_k = 20
+    inverted = True
+    response = get_relevant_documents("./project_work_group_12/config.ini", top_k, inverted)
+    with open(f'results_{top_k}_inverted.json', 'w', encoding='utf-8') as f:
       json.dump(response, f, ensure_ascii=False, indent=4)
 
