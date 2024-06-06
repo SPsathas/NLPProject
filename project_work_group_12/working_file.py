@@ -2,20 +2,33 @@ import json
 import torch
 
 from retriever.Contriever import Contriever
-import openai
-import os
 from data.loaders.RetrieverDataset import RetrieverDataset
 from data.loaders.MusiqueQaDataLoader import MusiqueQADataLoader
 from constants import Split
-from metrics.retrieval.RetrievalMetrics import RetrievalMetrics
 from metrics.SimilarityMatch import CosineSimilarity as CosScore
 from data.datastructures.hyperparameters.dpr import DenseHyperParams
+import random
 
 CONFIG_INSTANCE = DenseHyperParams(query_encoder_path="facebook/contriever",
                                      document_encoder_path="facebook/contriever",
                                      batch_size=16)
 
-def get_relevant_documents(config_path: str, top_k: int):
+def get_random_pairs(response, num_pairs):
+    # Extract the dictionary from the response
+    inner_dict = next(iter(response.values()))
+
+    # Get a list of keys from the dictionary
+    keys = list(inner_dict.keys())
+
+    # Select random keys
+    random_keys = random.sample(keys, num_pairs)
+
+    # Create a new dictionary with the selected key-value pairs
+    random_pairs = {key: inner_dict[key] for key in random_keys}
+
+    return random_pairs
+
+def get_relevant_documents(config_path: str, top_k: int, inverted: bool = False, n_pairs: int = 2):
     """
     Get relevant documents for a given query.
     Works on the musique dataset.
@@ -28,12 +41,15 @@ def get_relevant_documents(config_path: str, top_k: int):
     print("*** DEV AND CORPUS LOADED ***")
     tasb_search = Contriever(CONFIG_INSTANCE)
 
-    similarity_measure = CosScore()
+    similarity_measure = CosScore(inverted)
     response = tasb_search.retrieve(corpus, queries, top_k-1, similarity_measure) # automatically looks for the already encoded corpus
     print("*** RETRIEVAL COMPLETED ***")
     # print("indices", len(response))
     # metrics = RetrievalMetrics(k_values=[1, 3, 5])
     # print(metrics.evaluate_retrieval(qrels=qrels, results=response))
+
+    if inverted:
+        response = get_random_pairs(response, n_pairs)
 
     processed_response = process_response(response)
     # final_response = get_textual_documents(processed_response, corpus)
