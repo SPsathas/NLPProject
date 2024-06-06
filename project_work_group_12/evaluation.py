@@ -2,6 +2,9 @@ from working_file import get_relevant_documents
 from evaluate import load
 from gfw import DevDataset, GPTQA
 import json
+import openai
+
+#gpt = openai.Client()
 
 def exact_match(predictions: list[str], references: list[str]) -> list[float]:
     """
@@ -40,12 +43,36 @@ def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =No
                 
     return exact_match(answers, ground_truths)
 
+def compute_answer(retrieved_contexts: dict, K: list[int]):
+    responses = {k: ([], []) for k in K}
+
+    for k in K:
+        progress = 1
+        for question_id, context in retrieved_contexts.items():
+            question = dev[question_id]
+            context = [c.replace('\n\n', '\n') for c in context]
+            response = gpt.ask_question(question, context[0:k])
+            responses[k][0].append(response[1])
+            responses[k][1].append(response[2])
+
+            if progress % 10 == 0: print(f'k={k}: {round(progress / len(retrieved_contexts) * 100, 1)}%')
+            progress += 1
+
+    # save data for less calls to gpt
+
+    return responses
+
 if __name__ == "__main__":
     dev = DevDataset("./project_work_group_12/data/dev.json")
-    top_k = 3
+    top_k = 10
     f = open(f"results_{top_k}.json")
     retrieved_documents = json.load(f)
     print(retrieved_documents)
 
-    print("Result with oracle contexts:", evaluate(dev, 'oracle'))
-    print("Result with retrieved contexts:", evaluate(dev, 'retrieved', retrieved_documents))
+    # result = compute_answer(retrieved_documents, [1,3,5])
+
+    #for k in enumerate(result.keys()):
+    #    print(exact_match(results[k][0], results[k][1]))
+
+    # print("Result with oracle contexts:", evaluate(dev, 'oracle'))
+    # print("Result with retrieved contexts:", evaluate(dev, 'retrieved', retrieved_documents))
