@@ -14,14 +14,17 @@ def exact_match(predictions: list[str], references: list[str]) -> list[float]:
 
     return results['exact_match']
 
-def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =None, write_to_file: tuple[bool, str] = (False, 'out.txt')):
+def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =None, write_to_file: tuple[bool, str] = (False, 'out.txt'), limit: int = 10):
     ground_truths = []
     answers = []
     prompts = []
 
     gpt = GPTQA()
 
+    count = 0
     for question in dev:
+        if count is not None:
+            if count > limit: break
         if mode == 'oracle':
             context = question.get_contexts('gold')
         elif mode == 'retrieved' and retrieved_contexts is not None:
@@ -33,8 +36,13 @@ def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =No
         answers.append(response[1])
         prompts.append(response[0])
 
+        count += 1
+
+    print(answers)
+    print(ground_truths)
+
     if write_to_file[0]:
-        with open(write_to_file[1], 'w') as f:
+        with open(write_to_file[1], 'w', encoding='utf-8') as f:
             for prompt, response, ground_truth in zip(prompts, answers, ground_truths):
                 f.write(f"_____Prompt_____\n{prompt}\n\n_____Response_____\n{response}\n\n_____Ground Truth_____\n{ground_truth}\n\n\n")
                 
@@ -85,10 +93,12 @@ if __name__ == "__main__":
     path = f"C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/NLPProject/results_{top_k}.json"
     with open(path, 'r', encoding='cp850') as file: # but i'm not sure if it really uploads stuff as it should....
         retrieved_documents = json.load(file)
-    result = evaluate_retrieved_documents(dev, retrieved_documents, [1,3,5])
+    # result = evaluate_retrieved_documents(dev, retrieved_documents, [1,3,5])
 
-    for k in result.keys():
-        print(f"Exact match for k={k}", result[k])
+    #for k in result.keys():
+    #    print(f"Exact match for k={k}", result[k])
 
-    # print("Result with oracle contexts:", evaluate(dev, 'oracle'))
-    # print("Result with retrieved contexts:", evaluate(dev, 'retrieved', retrieved_documents))
+    # *** EVALUATION FOR ORACLE CONTEXTS ***
+    # i don't find the file where it saves stuff
+
+    print("Result with oracle contexts:", evaluate(dev, 'oracle', write_to_file=(True, "results_oracle.json")))
