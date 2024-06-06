@@ -31,7 +31,7 @@ def get_relevant_documents(config_path: str, top_k: int):
     similarity_measure = CosScore()
     response = tasb_search.retrieve(corpus, queries, top_k-1, similarity_measure) # automatically looks for the already encoded corpus
     print("*** RETRIEVAL COMPLETED ***")
-    print("indices", len(response))
+    # print("indices", len(response))
     # metrics = RetrievalMetrics(k_values=[1, 3, 5])
     # print(metrics.evaluate_retrieval(qrels=qrels, results=response))
 
@@ -72,7 +72,7 @@ def get_textual_documents(processed_response, corpus):
     return processed_response
 
 if __name__ == "__main__":
-    top_k = 3
+    top_k = 10
     response = get_relevant_documents("./project_work_group_12/config.ini", top_k)
     with open(f'results_{top_k}.json', 'w', encoding='utf-8') as f:
       json.dump(response, f, ensure_ascii=False, indent=4)
