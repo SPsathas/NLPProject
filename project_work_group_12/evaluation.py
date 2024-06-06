@@ -14,9 +14,11 @@ def exact_match(predictions: list[str], references: list[str]) -> list[float]:
 
     return results['exact_match']
 
-def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =None):
-    ground_truth = []
+def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =None, write_to_file: tuple[bool, str] = (False, 'out.txt')):
+    ground_truths = []
     answers = []
+    prompts = []
+
     gpt = GPTQA()
 
     for question in dev:
@@ -27,15 +29,21 @@ def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =No
         else: raise ValueError("Something wrong happened")
 
         response = gpt.ask_question(question, context=context)
-        ground_truth.append(question.answer)
+        ground_truths.append(question.answer)
         answers.append(response[1])
+        prompts.append(response[0])
 
-    return exact_match(answers, ground_truth)
+    if write_to_file[0]:
+        with open(write_to_file[1], 'w') as f:
+            for prompt, response, ground_truth in zip(prompts, answers, ground_truths):
+                f.write(f"_____Prompt_____\n{prompt}\n\n_____Response_____\n{response}\n\n_____Ground Truth_____\n{ground_truth}\n\n\n")
+                
+    return exact_match(answers, ground_truths)
 
 if __name__ == "__main__":
     dev = DevDataset("./project_work_group_12/data/dev.json")
     top_k = 3
-    f = open("results.json")
+    f = open(f"results_{top_k}.json")
     retrieved_documents = json.load(f)
     print(retrieved_documents)
 
