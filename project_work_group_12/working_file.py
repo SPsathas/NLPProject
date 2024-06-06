@@ -10,12 +10,28 @@ from constants import Split
 from metrics.retrieval.RetrievalMetrics import RetrievalMetrics
 from metrics.SimilarityMatch import CosineSimilarity as CosScore
 from data.datastructures.hyperparameters.dpr import DenseHyperParams
+import random
 
 CONFIG_INSTANCE = DenseHyperParams(query_encoder_path="facebook/contriever",
                                      document_encoder_path="facebook/contriever",
                                      batch_size=16)
 
-def get_relevant_documents(config_path: str, query: str, top_k: int):
+def get_random_pairs(response, num_pairs):
+    # Extract the dictionary from the response
+    inner_dict = next(iter(response.values()))
+
+    # Get a list of keys from the dictionary
+    keys = list(inner_dict.keys())
+
+    # Select random keys
+    random_keys = random.sample(keys, num_pairs)
+
+    # Create a new dictionary with the selected key-value pairs
+    random_pairs = {key: inner_dict[key] for key in random_keys}
+
+    return random_pairs
+
+def get_relevant_documents(config_path: str, query: str, top_k: int, inverted = False):
     """
     Get relevant documents for a given query.
     Works on the musique dataset.
@@ -30,7 +46,7 @@ def get_relevant_documents(config_path: str, query: str, top_k: int):
     print("First question:", queries[1].text())
     tasb_search = Contriever(CONFIG_INSTANCE)
 
-    similarity_measure = CosScore()
+    similarity_measure = CosScore(inverted)
     response = tasb_search.retrieve(corpus, queries[:1], top_k, similarity_measure) # automatically looks for the already encoded corpus
     print("indices", len(response))
     metrics = RetrievalMetrics(k_values=[1, 3, 5])
@@ -71,7 +87,13 @@ if __name__ == "__main__":
     response = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
                            "Who is the mother of the director of film Polish-Russian War (Film)?",
                            3)
-    print("response type:", type(response))
-    print("response:", response)
+    response_inverted = get_relevant_documents("./project_work_group_12/config.ini", # . == NLPProject
+                           "Who is the mother of the director of film Polish-Russian War (Film)?",
+                           3, inverted = True)
+
+    random_pairs = get_random_pairs(response_inverted, 2)
+
+    response.update(random_pairs)
+    print(response)
     with open('response.json', 'w', encoding='utf-8') as f:
         json.dump(response, f, ensure_ascii=False, indent=4)

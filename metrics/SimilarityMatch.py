@@ -29,6 +29,8 @@ class SimilarityMetric(Metric):
 
 
 class CosineSimilarity(SimilarityMetric):
+    def __init__(self, inverted = False):
+      self.inverted = inverted
 
     def name(self):
         return "Cosine Similarity"  
@@ -37,6 +39,8 @@ class CosineSimilarity(SimilarityMetric):
         embeddings1_norm = torch.nn.functional.normalize(embeddings1, p=2, dim=1)
         embeddings2_norm = torch.nn.functional.normalize(embeddings2, p=2, dim=1)
         scores = torch.mm(embeddings1_norm, embeddings2_norm.transpose(0, 1))
+        if self.inverted: #if inverted is true, then overwrite scores with its negative
+           scores = torch.mm(embeddings1_norm, embeddings2_norm.transpose(0, 1))*(-1)
         return scores
 
     
