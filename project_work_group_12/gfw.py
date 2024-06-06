@@ -19,8 +19,9 @@ class DevDataset:
         Args:
         path (str): path to the dataset file.
         """
-        with open(path, 'r') as file:
+        with open(path, 'r', encoding='cp850') as file:
             data = json.load(file)
+
 
         self.questions = []
         self.lut = {}
@@ -169,7 +170,7 @@ class GPTQA:
         Args:
             api_key (str): The OpenAI API key.
         """
-        self.client = openai.Client()
+        self.client = openai.Client(api_key="sk-proj-OD9UpwZjabyMJ0bPtPnMT3BlbkFJKDkmftX3AjUy6zp6di0P")
         self.system_prompt = 'Respond in the shortest way possible. No full sentence. Just a factoid answer.'
         self.actually_prompt = True
 

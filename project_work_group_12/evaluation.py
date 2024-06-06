@@ -2,9 +2,6 @@ from working_file import get_relevant_documents
 from evaluate import load
 from gfw import DevDataset, GPTQA
 import json
-import openai
-
-#gpt = openai.Client()
 
 def exact_match(predictions: list[str], references: list[str]) -> list[float]:
     """
@@ -43,12 +40,21 @@ def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =No
                 
     return exact_match(answers, ground_truths)
 
-def compute_answer(retrieved_contexts: dict, K: list[int]):
+def evaluate_retrieved_documents(dev, retrieved_contexts: dict, K: list[int], write_to_file: bool = True, limit: int = 10):
+    """
+    Evaluated performance over retrieved documents using the top-k contained in list K.
+    :param retrieved_contexts:
+    :param K:
+    :return:
+    """
     responses = {k: ([], []) for k in K}
+    metrics = {}
 
     for k in K:
         progress = 1
         for question_id, context in retrieved_contexts.items():
+            if limit is not None:
+                if progress > 10: break
             question = dev[question_id]
             context = [c.replace('\n\n', '\n') for c in context]
             response = gpt.ask_question(question, context[0:k])
@@ -57,22 +63,32 @@ def compute_answer(retrieved_contexts: dict, K: list[int]):
 
             if progress % 10 == 0: print(f'k={k}: {round(progress / len(retrieved_contexts) * 100, 1)}%')
             progress += 1
+        metrics[k] = exact_match(responses[k][0], responses[k][1])
 
-    # save data for less calls to gpt
+    if write_to_file:
+        with open('results_retrieved.json', 'w', encoding='utf-8') as f:
+            json.dump(responses, f, ensure_ascii=False, indent=4)
 
-    return responses
+    return metrics
 
 if __name__ == "__main__":
-    dev = DevDataset("./project_work_group_12/data/dev.json")
+    dev = DevDataset("C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/NLPProject/dev.json")
+    gpt = GPTQA()
+    gpt.set_system_prompt("For this task, you should provide a factoid answer. This means that you are limited to returning the exact answer to the question"
+                          "(which might be a person's name, a date, a place and so on), without any additional word and without putting the factoid answer in"
+                          "a sentence. For instance, if the question is \"Who was the lead singer of the rock band Queen?\", you should reply \"Freddy Mercury\","
+                          "and not \"The lead singer of the band Queen was Freddy Mercury\".", )
+
+    # *** EVALUATE RAG WITH RETRIEVED DOCUMENTS (FOR TOP_K = 1,3,5) ***
+
     top_k = 10
-    f = open(f"results_{top_k}.json")
-    retrieved_documents = json.load(f)
-    print(retrieved_documents)
+    path = f"C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/NLPProject/results_{top_k}.json"
+    with open(path, 'r', encoding='cp850') as file: # but i'm not sure if it really uploads stuff as it should....
+        retrieved_documents = json.load(file)
+    result = evaluate_retrieved_documents(dev, retrieved_documents, [1,3,5])
 
-    # result = compute_answer(retrieved_documents, [1,3,5])
-
-    #for k in enumerate(result.keys()):
-    #    print(exact_match(results[k][0], results[k][1]))
+    for k in result.keys():
+        print(f"Exact match for k={k}", result[k])
 
     # print("Result with oracle contexts:", evaluate(dev, 'oracle'))
     # print("Result with retrieved contexts:", evaluate(dev, 'retrieved', retrieved_documents))
