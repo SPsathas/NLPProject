@@ -1,7 +1,36 @@
+from sentence_transformers import SentenceTransformer
+
+from sentence_transformers import SentenceTransformer, util
 from working_file import get_relevant_documents
 from evaluate import load
 from gfw import DevDataset, GPTQA
 import json
+
+def bertscore(correct_answers, predicted_answers):
+    # Load the pre-trained Sentence-BERT model
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+
+    # Check if the input lists have the same length
+    if len(correct_answers) != len(predicted_answers):
+        raise ValueError("The lists of correct and predicted answers must have the same length")
+
+    # Initialize a list to store similarity scores
+    similarity_scores = []
+
+    # Compute the similarity score for each pair of answers
+    for correct, predicted in zip(correct_answers, predicted_answers):
+        # Encode the sentences to get their embeddings
+        embedding1 = model.encode(correct, convert_to_tensor=True)
+        embedding2 = model.encode(predicted, convert_to_tensor=True)
+
+        # Compute the cosine similarity between the embeddings
+        similarity_score = util.pytorch_cos_sim(embedding1, embedding2).item()
+        similarity_scores.append(similarity_score)
+
+    # Calculate the average similarity score
+    average_score = sum(similarity_scores) / len(similarity_scores)
+
+    return average_score
 
 def exact_match(predictions: list[str], references: list[str]) -> list[float]:
     """
@@ -13,6 +42,10 @@ def exact_match(predictions: list[str], references: list[str]) -> list[float]:
                                          ignore_punctuation=True)
 
     return results['exact_match']
+
+
+
+
 
 def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =None, write_to_file: tuple[bool, str] = (False, 'out.txt')):
     ground_truths = []
@@ -40,7 +73,7 @@ def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =No
                 
     return exact_match(answers, ground_truths)
 
-def evaluate_retrieved_documents(dev, retrieved_contexts: dict, K: list[int], write_to_file: bool = True, limit: int = 10):
+def evaluate_retrieved_documents(dev, retrieved_contexts: dict, K: list[int], write_to_file: bool = True, limit: int = 10, metric = 'ExactMatch'):
     """
     Evaluated performance over retrieved documents using the top-k contained in list K.
     :param retrieved_contexts:
@@ -63,7 +96,12 @@ def evaluate_retrieved_documents(dev, retrieved_contexts: dict, K: list[int], wr
 
             if progress % 10 == 0: print(f'k={k}: {round(progress / len(retrieved_contexts) * 100, 1)}%')
             progress += 1
-        metrics[k] = exact_match(responses[k][0], responses[k][1])
+        if metric == 'ExactMatch':
+            metrics[k] = exact_match(responses[k][0], responses[k][1])
+        elif metric == 'BertMatch':
+            print('risposta 1: ', responses[k][0],' risposta 2: ', responses[k][1])
+            metrics[k] = bertscore(responses[k][0], responses[k][1])
+
 
     if write_to_file:
         with open('results_retrieved.json', 'w', encoding='utf-8') as f:
@@ -72,7 +110,8 @@ def evaluate_retrieved_documents(dev, retrieved_contexts: dict, K: list[int], wr
     return metrics
 
 if __name__ == "__main__":
-    dev = DevDataset("C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/NLPProject/dev.json")
+    dev = DevDataset(r"C:\Users\User\Downloads\dev_full.json")
+
     gpt = GPTQA()
     gpt.set_system_prompt("For this task, you should provide a factoid answer. This means that you are limited to returning the exact answer to the question"
                           "(which might be a person's name, a date, a place and so on), without any additional word and without putting the factoid answer in"
@@ -82,10 +121,10 @@ if __name__ == "__main__":
     # *** EVALUATE RAG WITH RETRIEVED DOCUMENTS (FOR TOP_K = 1,3,5) ***
 
     top_k = 10
-    path = f"C:/Users/matte/OneDrive - Politecnico di Milano/Poli/Erasmus/Corsi/Natural Language Processing/group project/NLPProject/results_{top_k}.json"
+    path = r"C:\Users\User\Downloads\results_10.json"
     with open(path, 'r', encoding='cp850') as file: # but i'm not sure if it really uploads stuff as it should....
         retrieved_documents = json.load(file)
-    result = evaluate_retrieved_documents(dev, retrieved_documents, [1,3,5])
+    result = evaluate_retrieved_documents(dev, retrieved_documents, [1,3,5], metric = 'BertMatch')
 
     for k in result.keys():
         print(f"Exact match for k={k}", result[k])
