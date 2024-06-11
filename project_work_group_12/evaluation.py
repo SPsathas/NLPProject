@@ -1,8 +1,5 @@
-from sentence_transformers import SentenceTransformer
-
 from sentence_transformers import SentenceTransformer, util
-from working_file import get_relevant_documents
-from evaluate import load
+from metrics import ExactMatch
 from gfw import DevDataset, GPTQA
 import json
 
@@ -34,7 +31,6 @@ def bertscore(correct_answers, predicted_answers):
 
 def exact_match(predictions: list[str], references: list[str]) -> list[float]:
     """
-    """
     exact_match_metric = load("exact_match")
     results = exact_match_metric.compute(predictions=predictions,
                                          references=references,
@@ -42,6 +38,10 @@ def exact_match(predictions: list[str], references: list[str]) -> list[float]:
                                          ignore_punctuation=True)
 
     return results['exact_match']
+    """
+    em = ExactMatch.ExactMatch()
+    return em.evaluate(predictions, references)
+
 
 def evaluate(dev: DevDataset, mode: str = 'oracle', retrieved_contexts: dict =None, write_to_file: tuple[bool, str] = (False, 'out.txt'), limit: int = 10):
     ground_truths = []
@@ -103,7 +103,7 @@ def evaluate_retrieved_documents(dev, retrieved_contexts: dict, K: list[int], wr
         if metric == 'ExactMatch':
             metrics[k] = exact_match(responses[k][0], responses[k][1])
         elif metric == 'BertMatch':
-            print('risposta 1: ', responses[k][0],' risposta 2: ', responses[k][1])
+            print('actual answer: ', responses[k][0],'expected answer: ', responses[k][1])
             metrics[k] = bertscore(responses[k][0], responses[k][1])
 
 
@@ -114,7 +114,7 @@ def evaluate_retrieved_documents(dev, retrieved_contexts: dict, K: list[int], wr
     return metrics
 
 if __name__ == "__main__":
-    dev = DevDataset(r"C:\Users\User\Downloads\dev_full.json")
+    dev = DevDataset(r"C:\Users\matte\OneDrive - Politecnico di Milano\Poli\Erasmus\Corsi\Natural Language Processing\group project\NLPProject\dev.json")
 
     gpt = GPTQA()
     gpt.set_system_prompt("For this task, you should provide a factoid answer. This means that you are limited to returning the exact answer to the question"
@@ -125,11 +125,13 @@ if __name__ == "__main__":
     # *** EVALUATE RAG WITH RETRIEVED DOCUMENTS (FOR TOP_K = 1,3,5) ***
 
     top_k = 10
-    path = r"C:\Users\User\Downloads\results_10.json"
-    with open(path, 'r', encoding='cp850') as file: # but i'm not sure if it really uploads stuff as it should....
+    path = r"C:\Users\matte\OneDrive - Politecnico di Milano\Poli\Erasmus\Corsi\Natural Language Processing\group project\NLPProject\results_10.json"
+    with open(path, 'r', encoding='utf-8') as file: # but i'm not sure if it really uploads stuff as it should....
         retrieved_documents = json.load(file)
 
     result = evaluate_retrieved_documents(dev, retrieved_documents, [1,3,5], metric = 'BertMatch')
+    for k in result.keys():
+        print(f"Result for k={k}", result[k])
 
     # *** EVALUATION FOR ORACLE CONTEXTS ***
     # i don't find the file where it saves stuff
