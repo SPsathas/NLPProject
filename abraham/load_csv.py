@@ -7,11 +7,9 @@ def load_csv_to_dict(file_path, name):
     with open(file_path, mode='r', encoding='utf-8') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         
-        # Initialize a dictionary with empty lists for each column header
         data_dict = {field: [] for field in csv_reader.fieldnames}
         data_dict['name'] = name  # Add the experiment name to the dictionary
 
-        # Populate the dictionary with data from the CSV file
         for row in csv_reader:
             for field in csv_reader.fieldnames:
                 data_dict[field].append(row[field])
@@ -23,16 +21,12 @@ def load_csv_to_dict(file_path, name):
 def load_results_csv_paths(root_dir):
     results_list = []
 
-    # Walk through the directory structure starting from root_dir
     for root, dirs, files in os.walk(root_dir):
         for dir_name in dirs:
-            # Construct the path to the CSV directory
             csv_dir_path = os.path.join(root, dir_name, 'csv')
             results_path = os.path.join(csv_dir_path, 'results.csv')
             
-            # Check if results.csv exists in the constructed path
             if os.path.isfile(results_path):
-                # Extract the parent directory name one level higher
                 parent_dir = os.path.basename(root)
                 results_list.append((parent_dir, results_path))
 
