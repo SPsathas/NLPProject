@@ -36,6 +36,6 @@ class RetrieverDataset:
                 if(sample.question not in queries):
                     queries.append(sample.question)
             evidence = sample.evidences
-            #print("str(sample.idx)",str(sample.idx),str(evidence.id()),qrels[str(sample.idx)])
+            # print("str(sample.idx)",str(sample.idx),str(evidence.id()),qrels[str(sample.idx)])
             qrels[sample.question.id()][str(evidence.id())] = 1
         return queries,qrels,corpus
