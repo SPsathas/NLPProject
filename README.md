@@ -1,3 +1,10 @@
+# RAGs for Open Domain Complex QA
+
+This is a fork from the BCQA [Benchmarking Complex QA](https://anonymous.4open.science/r/BCQA-05F9/README.md) repo.
+
+The scripts used for making the OpenAI API calls and the data processing and analysis can be found in the data_analysis folder.
+
+
 # BCQA (Benchmarking Complex QA)
 
 BCQA is a benchmark for a wide range of complex Qa tasks. It also aims to provide a easy to use framework for evaluating retrieval and reasoning approaches for answering complex multi-hop questions.
