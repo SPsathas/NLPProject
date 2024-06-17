@@ -1,0 +1,4 @@
+musique_data/*
+*.pyc
+config.ini
+.DS_Store

@@ -1,0 +1,513 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(hrbrthemes)
+library(ggdist)
+library("ggsci")
+library(patchwork)
+library(lme4)
+library(lmerTest)
+library(MASS)
+library(sjPlot)
+
+```
+
+```{r}
+path = "/Users/timotheusberg/Documents/COSSE/NLP/NLPProject/data_analysis"
+```
+
+
+
+```{r}
+data_0 = read.csv(file.path(path, "data/experiment_0" ,"e0_qa_output_no_context_scores.csv"))
+data_1_1 = read.csv(file.path(path, "data/experiment_1" ,"e1_qa_topk_k1_scores.csv"))
+data_1_3 = read.csv(file.path(path, "data/experiment_1" ,"e1_qa_topk_k3_scores.csv"))
+data_1_5 = read.csv(file.path(path, "data/experiment_1" ,"e1_qa_topk_k5_scores.csv"))
+data_1_10 = read.csv(file.path(path, "data/experiment_1" ,"e1_qa_topk_k10_scores.csv"))
+
+data_1_1_adore = read.csv(file.path(path, "data/experiment_1" ,"e1_adore_k1_scores.csv"))
+data_1_3_adore = read.csv(file.path(path, "data/experiment_1" ,"e1_adore_k3_scores.csv"))
+data_1_5_adore = read.csv(file.path(path, "data/experiment_1" ,"e1_adore_k5_scores.csv"))
+data_1_10_adore = read.csv(file.path(path, "data/experiment_1" ,"e1_adore_k10_scores.csv"))
+
+data_1_1_adore_trained = read.csv(file.path(path, "data/experiment_1" ,"e1_adore_trained_k1_scores.csv"))
+data_1_3_adore_trained = read.csv(file.path(path, "data/experiment_1" ,"e1_adore_trained_k3_scores.csv"))
+data_1_5_adore_trained = read.csv(file.path(path, "data/experiment_1" ,"e1_adore_trained_k5_scores.csv"))
+data_1_10_adore_trained = read.csv(file.path(path, "data/experiment_1" ,"e1_adore_trained_k10_scores.csv"))
+
+
+# Set k column
+data_0$k = 0
+data_1_1$k = 1
+data_1_3$k = 3
+data_1_5$k = 5
+data_1_10$k = 10
+data_1_1_adore$k = 1
+data_1_3_adore$k = 3
+data_1_5_adore$k = 5
+data_1_10_adore$k = 10
+data_1_1_adore_trained$k = 1
+data_1_3_adore_trained$k = 3
+data_1_5_adore_trained$k = 5
+data_1_10_adore_trained$k = 10
+
+# Merge data 
+data_1 = rbind(data_0, data_1_1, data_1_3, data_1_5, data_1_10)
+data_1$adore = "None"
+
+data_1_adore = rbind(data_1_1_adore, data_1_3_adore, data_1_5_adore, data_1_10_adore)
+data_1_adore$adore = "Standard"
+
+data_1_adore_trained = rbind(data_1_1_adore_trained, data_1_3_adore_trained, data_1_5_adore_trained, data_1_10_adore_trained)
+data_1_adore_trained$adore = "Fine-Tuned"
+
+data_1 = rbind(data_1, data_1_adore, data_1_adore_trained)
+```
+
+```{r}
+
+data_1$bert_score = round(data_1$bert_score, 6)
+data_1$cosine_score = round(data_1$cosine_score, 6)
+```
+
+```{r}
+# Raincloud plot of the scores grouped by k
+p1 <- data_1 %>% filter(adore == "None") %>%
+  ggplot(aes(x = bert_score,y = as.factor(k),  fill = as.factor(k))) +
+  stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA) +  
+  geom_boxplot(width = 0.12, outlier.shape = NA, alpha=0.5) +
+  scale_fill_jama() +
+  theme_ipsum() +
+  theme(legend.position = "none") +
+  labs(title = "Effect of Context",
+       subtitle = "Top k number of documents",
+       y = "Number of Documents",
+       x = "BERT Score")
+
+
+ggsave(file.path(path, "figures/experiment_1" ,"effect_of_context.png"), p1, width = 8, height = 7)
+p1
+```
+
+
+```{r}
+data_1$k <- factor(data_1$k, levels = c(0, 1, 3, 5, 10), ordered = TRUE)
+
+contrasts(data_1$k) <- contr.sdif(5)
+data_1$adore <- factor(data_1$adore, levels = c("None", "Standard", "Fine-Tuned"), ordered = TRUE)
+# contrasts(data_1$adore) <- contr.sdif(3)
+
+model <- data_1 %>% filter(adore == "None") %>% lmer(bert_score ~ k + (1 | index), data = .)
+summary(model)
+```
+```{r}
+tab_model(model, show.se=TRUE, show.ci = FALSE)
+```
+
+```{r}
+qqnorm(resid(model))
+```
+
+```{r}
+p1 <- data_1 %>%
+  ggplot(aes(x = bert_score,y = adore,  fill = adore)) +
+  stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA) +  
+  geom_boxplot(width = 0.12, outlier.shape = NA, alpha=0.5) +
+  scale_fill_jama() +
+  theme_ipsum() +
+  theme(legend.position = "none") +
+  
+  # scale_y_discrete(labels = c("TRUE" = "With ADORE", "FALSE" = "Without ADORE")) +
+  labs(title = "Effect of ADORE",
+       subtitle = "Accross top k number of documents",
+       y = "",
+       x = "BERT Score")
+
+ggsave(file.path(path, "figures/experiment_1" ,"effect_of_adore.png"), p1, width = 8, height = 5)
+p1
+```
+
+
+```{r}
+# Raincloud plot of the scores grouped by k
+p1 <- data_1 %>% filter(k != 0) %>%
+  ggplot(aes(y = bert_score,x = as.factor(k),  fill = adore)) +
+  geom_boxplot(width = 0.8, alpha=0.5) +
+  scale_fill_jama() +
+  theme_ipsum() +
+  labs(title = "Comparing ADORE and k",
+       subtitle = "Top k number of documents",
+       y = "BERT Score",
+       x = "Number of Documents",
+       fill = "ADORE")
+
+ggsave(file.path(path, "figures/experiment_1" ,"adore_vs_k.png"), p1, width = 8, height = 8)
+p1
+```
+### Oracle Contexts
+```{r}
+data_oracle = read.csv(file.path(path, "data/experiment_2" ,"e2_oracle_scores.csv"))
+data_oracle$bert_score = round(data_oracle$bert_score, 6)
+
+# Bert score of first experiment without ADORE and with k=3
+best_score = data_1 %>% filter(adore == "None" & k==3)
+data_oracle$best_other = best_score$bert_score
+
+# into long format
+data_oracle_long = data_oracle %>%
+  pivot_longer(cols = c("bert_score", "best_other"), names_to = "score_type", values_to = "score")
+```
+
+```{r}
+# count samples with BERT score higher thatn 0.9
+data_oracle %>% filter(best_other > 0.9) %>% count() / nrow(data_oracle)
+```
+
+
+```{r}
+# get first jama color
+color_val = pal_jama()(5)[3]
+
+p1 <- data_oracle_long %>% 
+  ggplot(aes(x = score, y=as.factor(score_type), fill=as.factor(score_type))) +
+  stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA) +  
+  geom_boxplot(width = 0.12, outlier.shape = NA, alpha=0.5) +
+  theme_ipsum() +
+  scale_fill_jama() +
+  scale_y_discrete(labels = c("bert_score" = "With Oracle", "best_other" = "k=3\n without ADORE")) +
+  theme(legend.position = "none") +
+  labs(title = "Oracle Context Compared to Best Retrieved",
+       y = "",
+       x = "BERT Score")
+
+ggsave(file.path(path, "figures/experiment_3" ,"oracle_vs_best_other.png"), p1, width = 8, height = 5)
+p1
+```
+```{r}
+data_oracle_long$score_type = factor(data_oracle_long$score_type, levels = c("best_other", "bert_score"), ordered = TRUE)
+contrasts(data_oracle_long$score_type) <- contr.sdif(2)
+
+
+model <- lmer(score ~ score_type + (1 | index), data = data_oracle_long)
+summary(model)
+```
+
+
+
+
+```{r}
+# Random context
+data_random_1_first = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_1-k2_2_first_scores.csv"))
+data_random_1_middle = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_1-k2_2_middle_scores.csv"))
+data_random_1_last = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_1-k2_2_last_scores.csv"))
+data_random_3_first = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_3-k2_2_first_scores.csv"))
+data_random_3_middle = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_3-k2_2_middle_scores.csv"))
+data_random_3_last = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_3-k2_2_last_scores.csv"))
+data_random_5_first = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_5-k2_2_first_scores.csv"))
+data_random_5_middle = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_5-k2_2_middle_scores.csv"))
+data_random_5_last = read.csv(file.path(path, "data/experiment_4" ,"top10-random-k1_5-k2_2_last_scores.csv"))
+
+
+data_random_1_first$k = 1
+data_random_1_middle$k = 1
+data_random_1_last$k = 1
+data_random_3_first$k = 3
+data_random_3_middle$k = 3
+data_random_3_last$k = 3
+data_random_5_first$k = 5
+data_random_5_middle$k = 5
+data_random_5_last$k = 5
+
+data_random_first = rbind(data_random_1_first, data_random_3_first, data_random_5_first)
+data_random_middle = rbind(data_random_1_middle, data_random_3_middle, data_random_5_middle)
+data_random_last = rbind(data_random_1_last, data_random_3_last, data_random_5_last)
+
+data_random_first$position = "first"
+data_random_middle$position = "middle"
+data_random_last$position = "last"
+
+data_random = rbind(data_random_first, data_random_middle, data_random_last)
+
+data_random$position = factor(data_random$position, levels = c("last", "middle", "first"), ordered = TRUE)
+data_random$k = factor(data_random$k, levels = c(5, 3, 1), ordered = TRUE)
+```
+
+```{r}
+data_random$position = factor(data_random$position, levels = c("first", "middle", "last"), ordered = TRUE)
+
+p1 <- data_random %>% 
+  ggplot(aes(x = bert_score, y=position, fill=position)) +
+  stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA) +  
+  geom_boxplot(width = 0.12, outlier.shape = NA, alpha=0.5) +
+  theme_ipsum() +
+  scale_fill_jama() +
+  scale_y_discrete(labels = c( "last" = "End","middle" = "Middle","first" = "Beginning")) +
+  theme(legend.position = "none") +
+  labs(title = "Random Documents with Top Documents",
+       subtitle = "Effect based on position of the top documents",
+       y = "",
+       x = "BERT Score")
+
+ggsave(file.path(path, "figures/experiment_4" ,"random_position.png"), p1, width = 8, height = 5)
+p1
+```
+
+```{r, fig.width=8, fig.height=8}
+data_random$position = factor(data_random$position, levels = c("first", "middle", "last"), ordered = TRUE)
+
+p1 <- data_random %>% 
+  ggplot(aes(y = bert_score, x=position, fill=k)) +
+  # stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA) +  
+  geom_boxplot(width = 0.8, alpha=0.5) +
+  theme_ipsum() +
+  scale_fill_jama() +
+  scale_x_discrete(labels = c("first" = "Beginning", "middle" = "Middle", "last" = "End")) +
+  labs(title = "Random Documents Effect on BERT Scores",
+       subtitle = "Effect based on number of the top documents",
+       y = "Score",
+       x = "Position",
+       fill="Number of\nDocuments")
+
+p1
+```
+```{r}
+# Bert score of first experiment without ADORE and with k=3
+data_1_contriever = data_1 %>% filter(adore == "None" & k != 0 & k != 10) %>% dplyr::select(index, k, bert_score)
+
+data_1_contriever$position = "None"
+
+# Average over position
+# data_random_compare = data_random %>% group_by(index, k) %>% summarise(bert_score = mean(bert_score))
+data_random_compare = data_random %>% dplyr::select(index, k, bert_score, position)
+
+data_compare = rbind(data_1_contriever, data_random_compare)
+data_compare$k = factor(data_compare$k, levels = c(1, 3, 5), ordered = TRUE)
+```
+
+```{r}
+data_compare$position = factor(data_compare$position, levels = c("None", "first", "middle", "last"), ordered = TRUE)
+
+contrasts(data_compare$position) <- contr.treatment(length(levels(data_compare$position)))
+contrasts(data_compare$k) <- contr.sdif(length(levels(data_compare$k)))
+
+model <- lmer(bert_score ~ position*k + (1 | index), data = data_compare)
+summary(model)
+```
+```{r}
+plot_model(model, type = "eff", show.values = TRUE)
+```
+
+```{r}
+data_compare$position = factor(data_compare$position, levels = c("last", "middle", "first", "None"), ordered = TRUE)
+
+# Plot 
+p1 <- data_compare %>% 
+  ggplot(aes(x = bert_score, y=position, fill=position)) +
+  stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA) +  
+  geom_boxplot(width = 0.12, outlier.shape = NA, alpha=0.5) +
+  theme_ipsum() +
+  scale_fill_jama() +
+  scale_y_discrete(labels = c("None" = "None", "first" = "Beginning", "middle" = "Middle", "last" = "End")) +
+  theme(legend.position = "none") +
+  labs(title = "Effect of Random Context",
+       subtitle = "Accross number of the top documents",
+       y = "Position",
+       x = "BERT Score")
+
+ggsave(file.path(path, "figures/experiment_4" ,"random_position.png"), p1, width = 8, height = 5)
+p1
+
+```
+
+
+```{r}
+# data_random$position = factor(data_random$position, levels = c("firs", "middle", "first"), ordered = TRUE)
+
+data_random$k = factor(data_random$k, levels = c(1, 3, 5), ordered = TRUE)
+
+contrasts(data_random$k) <- contr.sdif(length(levels(data_random$k)))
+contrasts(data_random$position) <- contr.sdif(length(levels(data_random$position)))
+
+model <- lmer(bert_score ~ k + position + (1 | index), data = data_random)
+summary(model)
+```
+```{r}
+tab_model(model, show.se=TRUE, show.ci = FALSE)
+```
+
+```{r}
+qqnorm(resid(model))
+```
+
+
+
+```{r}
+# Hard negatives
+data_negative_1 = read.csv(file.path(path, "data/experiment_5" ,"e4_qa_hard_negatives_k1_scores.csv"))
+data_negative_3 = read.csv(file.path(path, "data/experiment_5" ,"e4_qa_hard_negatives_k3_scores.csv"))
+data_negative_5 = read.csv(file.path(path, "data/experiment_5" ,"e4_qa_hard_negatives_k5_scores.csv"))
+
+data_negative_1$k = 1
+data_negative_3$k = 3
+data_negative_5$k = 5
+
+data_negative = rbind(data_0, data_negative_1, data_negative_3, data_negative_5)
+data_negative$k = factor(data_negative$k, levels = c(5, 3, 1, 0), ordered = TRUE)
+```
+
+```{r}
+p1 <- data_negative %>% 
+  ggplot(aes(x = bert_score, y=k, fill=k)) +
+  stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA) +  
+  geom_boxplot(width = 0.12, outlier.shape = NA, alpha=0.5) +
+  theme_ipsum() +
+  scale_fill_jama() +
+  theme(legend.position = "none") +
+  labs(title = "Effect of Negative Context",
+       subtitle = "Based on number of the top documents",
+       y = "Number of Documents",
+       x = "BERT Score")
+
+ggsave(file.path(path, "figures/experiment_5" ,"negative_context.png"), p1, width = 8, height = 5)
+
+p1
+```
+
+```{r}
+data_negative$k = factor(data_negative$k, levels = c(0, 1, 3, 5), ordered = TRUE)
+contrasts(data_negative$k) <- contr.sdif(length(levels(data_negative$k)))
+
+model <- lmer(bert_score ~ k + (1 | index), data = data_negative)
+summary(model)
+```
+```{r}
+tab_model(model, show.se=TRUE, show.ci = FALSE)
+```
+
+```{r}
+qqnorm(resid(model))
+```
+
+```{r}
+# no context (0) vs context (1) vs context with ADORE (5) vs oracle (2) vs random (3) vs hard negatives (4)
+data_no_context = data_0
+data_best_context = data_1 %>% filter(adore == FALSE & k == 3)
+data_best_context_adore = data_1 %>% filter(adore == TRUE & k == 1)
+data_best_random = data_random %>% filter(k == 3 & position == "middle")
+data_compare
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# Correlation between scores
+# Scatter plot
+p1 <- data_0 %>%
+  ggplot(aes(x = bert_score, y = cosine_score, color = exact_match)) +
+  geom_point() +
+  scale_color_jama() +
+  theme_ipsum() +
+  labs(title = "Correlation Between Scores Without Context",
+       y = "Cosine Score",
+       x = "Bert Score",
+       color = "Exact Match")
+
+p1
+```
+
+```{r}
+# Scatter plot between bert and cosine scores per k
+p1 <- data_1 %>%
+  ggplot(aes(x = bert_score, y = cosine_score, color = as.factor(k))) +
+  geom_point() +
+  theme_ipsum() +
+  scale_color_jama() +
+  labs(title = "Correlation Between Scores With Context",
+       y = "Cosine Score",
+       x = "Bert Score",
+       color = "Number of Documents")
+
+p1
+```
+
+```{r}
+data_cross = read.csv(file.path(path, "data/experiment_1" ,"results_cross_scores.csv"))
+data_cross$BERT_Score = round(data_cross$BERT_Score, 6)
+
+```
+
+<!-- ```{r} -->
+<!-- p1 <- data_cross %>% -->
+<!--   ggplot(aes(x = BERT_Score)) + -->
+<!--   stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA, fill=fill_color) +   -->
+<!--   geom_boxplot(width = 0.12, outlier.shape = NA, alpha=0.5, fill=fill_color) + -->
+<!--   theme_ipsum() + -->
+<!--   theme(legend.position = "none") + -->
+<!--   labs(title = "Bert Scores Between Answers", -->
+<!--        y = "Density", -->
+<!--        x = "Score") -->
+
+<!-- p1 -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- # Differences in bert score for k=1 and k=3 -->
+<!-- diff <- abs(data_1_1$bert_score - data_1_3$bert_score) -->
+<!-- bert_diff_1_3 <- data.frame(diff) -->
+
+<!-- p1 <- bert_diff_1_3 %>% -->
+<!--   ggplot(aes(x = diff)) + -->
+<!--   stat_halfeye(adjust = 0.5, justification = -0.1, .width = 0, point_colour = NA, fill=fill_color) +   -->
+<!--   geom_boxplot(width = 0.12, outlier.shape = NA, alpha=0.5, fill=fill_color) + -->
+<!--   theme_ipsum() + -->
+<!--   theme(legend.position = "none") + -->
+<!--   labs(title = "Bert Scores Between Answers", -->
+<!--        y = "Density", -->
+<!--        x = "Score") -->
+
+<!-- p1 -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- # Scatter data_cross bert score vs score differences -->
+<!-- bert_diff_1_3$BERT_Score = data_cross$BERT_Score -->
+
+<!-- p1 <- bert_diff_1_3 %>% -->
+<!--   ggplot(aes(x = BERT_Score, y = diff)) + -->
+<!--   geom_point() + -->
+<!--   theme_ipsum() + -->
+<!--   labs(title = "Correlation Between Scores With Context", -->
+<!--        y = "Difference in Scores", -->
+<!--        x = "Bert Score") -->
+
+<!-- p1 -->
+<!-- ``` -->
+

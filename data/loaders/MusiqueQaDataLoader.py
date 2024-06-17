@@ -1,5 +1,6 @@
 import json
 import os
+
 import tqdm
 from constants import Split
 from data.datastructures.answer import Answer
@@ -22,19 +23,22 @@ class MusiqueQADataLoader(GenericDataLoader):
     def load_raw_dataset(self, split=Split.TRAIN):
         dataset = self.load_json(split)
         print(len(dataset))
-        for  query_index, data in enumerate(tqdm.tqdm(dataset)):
-            if len(data["paragraphs"]) == 0:
-                data["paragraphs"] = ['some random title', ['some random stuff']]
-            for evidence_set in data["paragraphs"]:
-                title = evidence_set["title"]
+        for query_index, data in enumerate(tqdm.tqdm(dataset)):
+            if len(data["context"]) == 0:
+                data["context"] = ['some random title', ['some random stuff']]
+            for evidence_set in data["context"]:
+                title = evidence_set[0]
                 #for evidence in evidence_set[1]:
-                evidence = evidence_set["paragraph_text"]
+                evidence = evidence_set[1]
                 #print(list(self.titles).index(title.split(" - ")[0]))
-                self.raw_data.append(
-                    Sample(query_index, Question(data["question"],idx=data["id"]), Answer(data["answer"]),
-                            Evidence(text=evidence, 
-                                    idx=list(self.titles).index(title.split(" - ")[0]),title=title)
-                ))
+                try:
+                    self.raw_data.append(
+                        Sample(query_index, Question(data["question"],idx=data["_id"]), Answer(data["answer"]),
+                                Evidence(text=evidence,
+                                        idx=list(self.titles).index(title.split(" - ")[0]),title=title)
+                    ))
+                except:
+                    a = 1
 
 
     def load_tokenized(self):

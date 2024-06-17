@@ -71,7 +71,7 @@ class GenericDataLoader(DataLoader):
 
     def load_json(self, split=Split.TRAIN):
         dataset_path = f"{self.data_folder_path}/{split}.json"
-        with open(dataset_path, "r") as fp:
+        with open(dataset_path, "r", encoding= 'cp850') as fp:
             dataset = json.load(fp)
         return dataset
 
@@ -99,12 +99,13 @@ class GenericDataLoader(DataLoader):
             truncation=True,
         )
         return op["input_ids"], op["attention_mask"]
-    
+
     def tokenize_evidences(self):
-        op = self.tokenizer.tokenize([data.evidences.text() for data in self.raw_data], padding=True, truncation=True,
-                                     return_tensors="pt")
-        return op['input_ids'], op['attention_mask']
-        
+        tokenized = [self.tokenizer.tokenize(data.evidences.text(), padding=True, truncation=True,
+                                             return_tensors="pt") for data in self.raw_data]
+        input_ids = [t['input_ids'] for t in tokenized]
+        attention_mask = [t['attention_mask'] for t in tokenized]
+        return input_ids, attention_mask
 
     def tokenize_answers(self):
         return self.tokenizer.tokenize([self.tokenizer.prefix+data.answer.text() for data in self.raw_data])
@@ -133,7 +134,7 @@ class PassageDataLoader(DataLoader):
     
     def _load_data(self):
         if(".json" in self.data_path):
-            with open(self.data_path,'r') as fp:
+            with open(self.data_path,'r', encoding= 'cp850') as fp:
                 db = json.load(fp) #format {"id":{"passage":"..","title":...}
                 passages = {}
                 titles = {}
